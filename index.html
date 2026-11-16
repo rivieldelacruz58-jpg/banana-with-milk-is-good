@@ -71,6 +71,12 @@ input[type=file]{width:100%;margin:8px 0;color:var(--text);font-size:13px}label{
  <div class="card"><h2>Attendance Settings</h2><label for="lateCutoff">Late cutoff time (scans after this time are Late)</label><input type="time" id="lateCutoff" value="07:30"><button class="btn-primary btn-block" id="saveSettingsBtn" style="margin-top:10px">Save Late Cutoff</button><p class="muted" id="settingsStatus">Changes apply to future scans only.</p><hr style="border:0;border-top:1px solid var(--border);margin:18px 0"><h2>Firebase Cloud Status</h2><p class="muted" id="cloudDataStatus">Connecting…</p><p class="muted">Attendance, roster, finalized dates, settings, and school-year baselines sync through Firebase. Access is controlled by your account and assigned sections.</p></div>
  <div class="card" id="adminPanel" style="display:none"><h2>Admin Controls</h2><p class="muted">Approve teacher accounts, assign multiple sections, and create sections.</p>
   <h3 style="font-size:14px;color:var(--navy)">Create Section</h3><div class="row"><input id="adminNewSection" placeholder="Example: ACAD 12-G"><button class="btn-primary" id="adminCreateSectionBtn">Create</button></div>
+  <div id="primaryAdminManager" style="display:none;border:1px solid var(--border);border-radius:10px;padding:12px;margin:14px 0">
+   <h3 style="font-size:14px;color:var(--navy);margin-top:0">Manage Additional Admins</h3>
+   <p class="muted">Create the account first in Firebase Authentication → Users. Then paste its User UID here. Only the Primary Admin can add or remove Admin access.</p>
+   <div class="row"><input id="newAdminUid" placeholder="Paste new Admin User UID"><button class="btn-primary" id="grantAdminBtn">Add Admin</button></div>
+   <div id="additionalAdminsList"><p class="muted">No additional Admins loaded.</p></div>
+  </div>
   <h3 style="font-size:14px;color:var(--navy)">Teacher Accounts</h3><button class="btn-secondary" id="refreshUsersBtn">Refresh Accounts</button><div id="adminUsersList"><p class="muted">Loading accounts…</p></div>
   <hr style="border:0;border-top:1px solid var(--border);margin:18px 0"><h3 style="font-size:14px;color:var(--navy)">Move Existing Browser Data to Firebase</h3><p class="muted">Use this once from the same browser and GitHub Pages address where your old ReMark data is stored. Existing cloud sections will be skipped to avoid overwriting cloud records.</p><button class="btn-primary btn-block" id="migrateLocalBtn">Upload This Browser's Existing Data</button><p class="muted" id="migrationStatus"></p>
  </div>
@@ -90,6 +96,7 @@ const KEYS={students:'remark_students',logs:'remark_logs',finalized:'remark_fina
 const $=id=>document.getElementById(id);
 const FIREBASE_CONFIG={apiKey:"AIzaSyDwoFz65Xax29dWrSUulsgbrTx6nyIve6w",authDomain:"remark-69ddc.firebaseapp.com",projectId:"remark-69ddc",storageBucket:"remark-69ddc.firebasestorage.app",messagingSenderId:"987326516491",appId:"1:987326516491:web:652f6552899ef127bfe60e",measurementId:"G-68SVQXHT1F"};
 const ADMIN_UID='UagF1jarxHSGeYiLbf0JJ3RHRvl2';
+const isPrimaryAdmin=()=>!!currentUser&&currentUser.uid===ADMIN_UID;
 let fbApp=null,fbAuth=null,fbDb=null,currentUser=null,currentProfile=null,cloudReady=false,cloudRole='',allowedSectionIds=[],sectionUnsubs=[],cloudSyncTimer=null,cloudSyncQueue=Promise.resolve(),suppressCloudWrites=false,registrationInProgress=false;
 const read=(key,def)=>{try{return JSON.parse(localStorage.getItem(key)??JSON.stringify(def))}catch(e){return def}};
 const rawWrite=(key,val)=>localStorage.setItem(key,JSON.stringify(val));
@@ -486,7 +493,7 @@ async function loadCloudWorkspace(){
   setCloudMessage('Admin workspace ready. Your existing browser data is preserved. Use “Upload This Browser’s Existing Data” to migrate it to Firebase.');
  }
 }
-function showSignedInApp(){ $('authGate').style.display='none';$('appShell').style.display='block';$('signedInLabel').textContent=(currentUser.email||'')+' · '+(cloudRole==='admin'?'Admin':'Teacher');$('adminPanel').style.display=cloudRole==='admin'?'block':'none';$('addSectionBtn').style.display='none';$('archiveSectionBtn').style.display=cloudRole==='admin'?'inline-block':'none';$('restoreSectionBtn').style.display=cloudRole==='admin'?'inline-block':'none';}
+function showSignedInApp(){ $('authGate').style.display='none';$('appShell').style.display='block';$('signedInLabel').textContent=(currentUser.email||'')+' · '+(cloudRole==='admin'?'Admin':'Teacher');$('adminPanel').style.display=cloudRole==='admin'?'block':'none';$('primaryAdminManager').style.display=isPrimaryAdmin()?'block':'none';$('addSectionBtn').style.display='none';$('archiveSectionBtn').style.display=cloudRole==='admin'?'inline-block':'none';$('restoreSectionBtn').style.display=cloudRole==='admin'?'inline-block':'none';}
 function showAuthGate(message){clearSectionListeners();cloudReady=false;currentUser=null;currentProfile=null;cloudRole='';$('appShell').style.display='none';$('authGate').style.display='block';if(message)setAuthMessage(message);}
 async function initFirebaseCloud(){
  try{
@@ -498,13 +505,18 @@ async function initFirebaseCloud(){
   $('resetPasswordBtn').onclick=async()=>{const email=$('authEmail').value.trim();if(!email){setAuthMessage('Enter your email first.');return;}try{await fbAuth.sendPasswordResetEmail(email);setAuthMessage('Password reset email sent.');}catch(e){setAuthMessage(authError(e));}};
   $('adminCreateSectionBtn').onclick=async()=>{if(cloudRole!=='admin')return;const name=$('adminNewSection').value.trim();if(!name){alert('Enter a section name.');return;}const id=sectionDocId(name),ref=fbDb.collection('sections').doc(id);if((await ref.get()).exists){alert('That section already exists.');return;}await ref.set({name,archived:false,createdAt:firebase.firestore.FieldValue.serverTimestamp()});saveSections([...sections(),name]);localStorage.setItem(KEYS.active,name);$('adminNewSection').value='';await loadCloudWorkspace();renderAll();await refreshAdminUsers();};
   $('refreshUsersBtn').onclick=refreshAdminUsers;$('migrateLocalBtn').onclick=migrateLocalDataToCloud;
+  $('grantAdminBtn').onclick=grantAdditionalAdmin;
   fbAuth.onAuthStateChanged(async user=>{
    if(registrationInProgress)return;
    if(!user){showAuthGate('Sign in with your ReMark account.');return;}
    try{
     currentUser=user;
     if(user.uid===ADMIN_UID){cloudRole='admin';currentProfile={role:'admin',status:'approved',sections:[]};await fbDb.collection('users').doc(user.uid).set({email:user.email||'',role:'admin',status:'approved',sections:[],updatedAt:firebase.firestore.FieldValue.serverTimestamp()},{merge:true});}
-    else{const profileSnap=await fbDb.collection('users').doc(user.uid).get();if(!profileSnap.exists){await fbAuth.signOut();showAuthGate('This account has no ReMark registration record. Please register as a teacher first.');return;}currentProfile=profileSnap.data();if(currentProfile.status!=='approved'){const status=currentProfile.status==='rejected'?'Your teacher registration was not approved. Contact the Admin.':'Your teacher account is pending Admin approval.';await fbAuth.signOut();showAuthGate(status);return;}if(currentProfile.role!=='teacher'){await fbAuth.signOut();showAuthGate('This account does not have an approved ReMark role.');return;}cloudRole='teacher';}
+    else{
+     const adminSnap=await fbDb.collection('admins').doc(user.uid).get();
+     if(adminSnap.exists&&adminSnap.data().active===true){cloudRole='admin';currentProfile={role:'admin',status:'approved',sections:[]};}
+     else{const profileSnap=await fbDb.collection('users').doc(user.uid).get();if(!profileSnap.exists){await fbAuth.signOut();showAuthGate('This account has no ReMark registration record. Please register as a teacher first.');return;}currentProfile=profileSnap.data();if(currentProfile.status!=='approved'){const status=currentProfile.status==='rejected'?'Your teacher registration was not approved. Contact the Admin.':'Your teacher account is pending Admin approval.';await fbAuth.signOut();showAuthGate(status);return;}if(currentProfile.role!=='teacher'){await fbAuth.signOut();showAuthGate('This account does not have an approved ReMark role.');return;}cloudRole='teacher';}
+    }
     await loadCloudWorkspace();cloudReady=true;showSignedInApp();$('lateCutoff').value=cutoff();renderAll();if(cloudRole==='admin')await refreshAdminUsers();
    }catch(e){console.error(e);cloudReady=false;showAuthGate('Could not load your cloud workspace: '+e.message);}
   });
@@ -513,11 +525,32 @@ async function initFirebaseCloud(){
 function authError(e){const code=e&&e.code||'';if(code==='auth/invalid-credential'||code==='auth/wrong-password'||code==='auth/user-not-found')return 'Email or password is incorrect.';if(code==='auth/email-already-in-use')return 'That email already has an account. Sign in instead.';if(code==='auth/weak-password')return 'Use a stronger password (at least 6 characters).';if(code==='auth/invalid-email')return 'Enter a valid email address.';return e.message||'Authentication failed.';}
 async function refreshAdminUsers(){
  if(cloudRole!=='admin')return;const host=$('adminUsersList');host.innerHTML='<p class="muted">Loading accounts…</p>';
- try{const [usersSnap,sectionsSnap]=await Promise.all([fbDb.collection('users').get(),fbDb.collection('sections').get()]);const sec=sectionsSnap.docs.map(d=>({id:d.id,name:d.data().name,archived:!!d.data().archived}));const users=usersSnap.docs.filter(d=>d.id!==ADMIN_UID).map(d=>({uid:d.id,...d.data()}));
+ try{const [usersSnap,sectionsSnap]=await Promise.all([fbDb.collection('users').get(),fbDb.collection('sections').get()]);if(isPrimaryAdmin())await refreshAdditionalAdmins();const sec=sectionsSnap.docs.map(d=>({id:d.id,name:d.data().name,archived:!!d.data().archived}));const users=usersSnap.docs.filter(d=>d.id!==ADMIN_UID&&d.data().role!=='admin').map(d=>({uid:d.id,...d.data()}));
   if(!users.length){host.innerHTML='<p class="muted">No teacher accounts yet. Teachers can register from the login screen.</p>';return;}
   host.innerHTML='';users.forEach(u=>{const card=document.createElement('div');card.className='admin-user';const title=document.createElement('div');title.innerHTML='<strong>'+escapeHtml(u.email||u.uid)+'</strong> · '+escapeHtml(u.status||'unknown');const checks=document.createElement('div');checks.className='section-checks';sec.filter(s=>!s.archived).forEach(s=>{const lab=document.createElement('label');const cb=document.createElement('input');cb.type='checkbox';cb.value=s.id;cb.checked=(u.sections||[]).includes(s.id);lab.append(cb,document.createTextNode(s.name));checks.append(lab);});const actions=document.createElement('div');actions.className='row';actions.style.marginTop='10px';const approve=document.createElement('button');approve.className='btn-primary';approve.textContent=u.status==='approved'?'Save Assignments':'Approve & Assign';approve.onclick=async()=>{const ids=[...checks.querySelectorAll('input:checked')].map(x=>x.value);await fbDb.collection('users').doc(u.uid).update({role:'teacher',status:'approved',sections:ids,updatedAt:firebase.firestore.FieldValue.serverTimestamp()});await refreshAdminUsers();};const reject=document.createElement('button');reject.className='danger';reject.textContent='Reject';reject.onclick=async()=>{if(!confirm('Reject this teacher account?'))return;await fbDb.collection('users').doc(u.uid).update({status:'rejected',sections:[],updatedAt:firebase.firestore.FieldValue.serverTimestamp()});await refreshAdminUsers();};actions.append(approve,reject);card.append(title,document.createTextNode('Assigned sections:'),checks,actions);host.append(card);});
  }catch(e){host.innerHTML='<p class="muted">Could not load teacher accounts: '+escapeHtml(e.message)+'</p>';}
 }
+async function grantAdditionalAdmin(){
+ if(!isPrimaryAdmin()){alert('Only the Primary Admin can add another Admin.');return;}
+ const uid=$('newAdminUid').value.trim();
+ if(!uid||uid===ADMIN_UID){alert('Enter a valid, different Firebase Authentication User UID.');return;}
+ try{
+  const existing=await fbDb.collection('admins').doc(uid).get();
+  if(existing.exists&&existing.data().active===true){alert('This account is already an Admin.');return;}
+  await fbDb.collection('admins').doc(uid).set({active:true,createdAt:firebase.firestore.FieldValue.serverTimestamp(),createdBy:currentUser.uid});
+  $('newAdminUid').value='';await refreshAdditionalAdmins();alert('Admin access granted. The new Admin should sign out and sign in again.');
+ }catch(e){alert('Could not add Admin: '+e.message);}
+}
+async function refreshAdditionalAdmins(){
+ if(!isPrimaryAdmin())return;
+ const host=$('additionalAdminsList');if(!host)return;host.innerHTML='<p class="muted">Loading Admin accounts…</p>';
+ try{
+  const snap=await fbDb.collection('admins').get();const docs=snap.docs.filter(d=>d.id!==ADMIN_UID&&d.data().active===true);
+  if(!docs.length){host.innerHTML='<p class="muted">No additional Admins yet.</p>';return;}
+  host.innerHTML='';docs.forEach(d=>{const item=document.createElement('div');item.className='admin-user';const label=document.createElement('div');label.innerHTML='<strong>Admin UID:</strong> '+escapeHtml(d.id);const btn=document.createElement('button');btn.className='danger';btn.textContent='Remove Admin Access';btn.onclick=async()=>{if(!confirm('Remove Admin access from '+d.id+'?'))return;try{await fbDb.collection('admins').doc(d.id).delete();await refreshAdditionalAdmins();}catch(e){alert('Could not remove Admin: '+e.message);}};item.append(label,btn);host.append(item);});
+ }catch(e){host.innerHTML='<p class="muted">Could not load Admin accounts: '+escapeHtml(e.message)+'</p>';}
+}
+
 async function uploadOneLocalSection(section){
  const id=sectionDocId(section),base=fbDb.collection('sections').doc(id);await base.set({name:section,archived:loadArchivedSections().includes(section),createdAt:firebase.firestore.FieldValue.serverTimestamp()},{merge:true});
  const students=loadStudents().filter(s=>(s.section||'ACAD 12-G')===section),logs=loadLogs().filter(l=>l.section===section).map(l=>({...l,recordId:l.studentId+'_'+l.dateKey})),finals=loadFinalized().filter(x=>x.startsWith(section+'|')).map(x=>({dateKey:x.slice(section.length+1)}));
