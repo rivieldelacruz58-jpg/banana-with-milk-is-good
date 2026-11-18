@@ -29,13 +29,13 @@ input[type=file]{width:100%;margin:8px 0;color:var(--text);font-size:13px}label{
 <div id="authGate">
  <div class="auth-card">
   <h2>ReMark Cloud Login</h2>
-  <p class="muted">Sign in to access your assigned attendance sections. Teacher registrations require Admin approval.</p>
+  <p class="muted">Sign in to open your sections.</p>
   <label for="authEmail">Email address</label><input id="authEmail" type="email" autocomplete="username" placeholder="you@example.com">
   <label for="authPassword">Password</label><input id="authPassword" type="password" autocomplete="current-password" placeholder="Enter password">
   <div class="auth-actions"><button class="btn-primary" id="loginBtn">Sign In</button><button class="btn-secondary" id="registerBtn">Teacher Register</button></div>
   <button id="resetPasswordBtn" class="btn-secondary btn-block" style="margin-top:9px;background:#64708d">Reset Password</button>
   <p id="authMessage" class="cloud-status" role="status">Connecting to Firebase…</p>
-  <div class="cloud-note">New teachers can register here. They cannot view student records until the Admin approves their account and assigns sections.</div>
+  <div class="cloud-note">Teacher accounts need Admin approval and section assignment.</div>
  </div>
 </div>
 <div id="appShell">
@@ -51,34 +51,28 @@ input[type=file]{width:100%;margin:8px 0;color:var(--text);font-size:13px}label{
   <div class="row stack-mobile"><select id="archivedSectionSelect" aria-label="Archived sections"><option value="">No archived sections</option></select><button class="btn-secondary" id="restoreSectionBtn" type="button">Restore Section</button></div>
   <h2>Add Student</h2>
   <div class="row stack-mobile"><input type="text" id="newName" placeholder="Student name"><select id="newSex" aria-label="Sex"><option value="">Select sex</option><option value="Male">Male</option><option value="Female">Female</option></select><button class="btn-primary" id="addStudentBtn">Add</button></div>
-  <p class="muted">Each student gets a unique QR ID. The QR code contains only the ID, not the student's LRN. Removing a student archives them and preserves attendance history.</p>
-  <label for="sf2File">Import SF2 Excel file (.xls or .xlsx). Recognized columns: Student Name, Section, LRN, Sex/Gender.</label>
-  <input type="file" id="sf2File" accept=".xls,.xlsx"><p class="muted" id="importStatus">The spreadsheet is processed in this browser; it is not uploaded to GitHub.</p>
+  <p class="muted">Each student gets a unique QR ID. Archived students keep their attendance history.</p>
+  <label for="sf2File">Import student roster (.xls or .xlsx).</label>
+  <input type="file" id="sf2File" accept=".xls,.xlsx"><p class="muted" id="importStatus">File is processed in this browser only.</p>
  </div>
- <div class="card"><h2>Student Roster (<span id="rosterCount">0</span>)</h2><div id="rosterList"><div class="empty">No students yet — add one above.</div></div>
+ <div class="card"><h2>Student Roster (<span id="rosterCount">0</span>)</h2><div id="rosterList"><div class="empty">No students yet.</div></div>
   <hr style="border:0;border-top:1px solid var(--border);margin:14px 0"><label for="archivedStudentSelect">Archived students in this section</label><div class="row stack-mobile"><select id="archivedStudentSelect"><option value="">No archived students</option></select><button class="btn-secondary" id="restoreStudentBtn" type="button">Restore Student</button></div>
  </div>
 </div>
 <div class="view" id="view-scan"><div class="card"><h2>Scan Attendance — <span id="scanSectionLabel"></span></h2><button class="btn-secondary btn-block" id="startScanBtn">Start Scanner</button><div id="reader" style="margin-top:12px"></div><div id="scanStatus" style="display:none"></div></div></div>
 <div class="view" id="view-log"><div class="card">
  <h2>Today's Attendance — <span id="logSectionLabel"></span></h2><p class="muted" id="cutoffHint"></p>
- <button class="btn-primary btn-block" id="finalizeAttendanceBtn">Finalize Today's Attendance</button><button class="btn-secondary btn-block" id="reopenBtn" style="display:none;margin-top:8px">Reopen Today's Attendance</button><p class="muted" id="finalizeStatus">Attendance is still open.</p>
+ <button class="btn-primary btn-block" id="finalizeAttendanceBtn">Finalize Today's Attendance</button><button class="btn-secondary btn-block" id="reopenBtn" style="display:none;margin-top:8px">Reopen Today's Attendance</button><p class="muted" id="finalizeStatus">Attendance is open.</p>
  <table id="logTable" style="display:none"><thead><tr><th>Time</th><th>Name</th><th>ID</th><th>Status</th></tr></thead><tbody id="logBody"></tbody></table><div class="empty" id="logEmpty">No scans recorded yet today.</div>
- <hr style="border:0;border-top:1px solid var(--border);margin:18px 0"><h2>Monthly Attendance Report</h2><p class="muted">Weekdays only: MON, TUE, WED, THU, FRI. Present and Late count as attended in totals. The SF2 mark still follows the late rule.</p>
+ <hr style="border:0;border-top:1px solid var(--border);margin:18px 0"><h2>Monthly Attendance Report</h2><p class="muted">Weekdays only. Present and Late count as attended; monthly late marks follow the late rule.</p>
  <div class="row"><input type="month" id="monthPicker"><button class="btn-primary" id="exportSf2Btn">Export Excel Report (.xlsx)</button></div><button class="btn-secondary btn-block" id="exportRosterBtn">Export Roster Backup CSV</button><div class="table-wrap" id="sf2TableWrap"><div class="empty">Add students to build the attendance sheet.</div></div>
  </div></div>
 <div class="view" id="view-settings">
- <div class="card"><h2>Attendance Settings</h2><label for="lateCutoff">Late cutoff time (scans after this time are Late)</label><input type="time" id="lateCutoff" value="07:30"><button class="btn-primary btn-block" id="saveSettingsBtn" style="margin-top:10px">Save Late Cutoff</button><p class="muted" id="settingsStatus">Changes apply to future scans only.</p><hr style="border:0;border-top:1px solid var(--border);margin:18px 0"><h2>Firebase Cloud Status</h2><p class="muted" id="cloudDataStatus">Connecting…</p><p class="muted">Attendance, roster, finalized dates, settings, and school-year baselines sync through Firebase. Access is controlled by your account and assigned sections.</p></div>
- <div class="card" id="adminPanel" style="display:none"><h2>Admin Controls</h2><p class="muted">Approve teacher accounts, assign multiple sections, and create sections.</p>
+ <div class="card"><h2>Attendance Settings</h2><label for="lateCutoff">Late cutoff</label><input type="time" id="lateCutoff" value="07:30"><button class="btn-primary btn-block" id="saveSettingsBtn" style="margin-top:10px">Save Late Cutoff</button><p class="muted" id="settingsStatus">Applies to new scans.</p><hr style="border:0;border-top:1px solid var(--border);margin:18px 0"><h2>Firebase Cloud Status</h2><p class="muted" id="cloudDataStatus">Connecting…</p><p class="muted">Cloud sync is active for your authorized sections.</p></div>
+ <div class="card" id="adminPanel" style="display:none"><h2>Admin Controls</h2><p class="muted">Manage teachers and sections.</p>
   <h3 style="font-size:14px;color:var(--navy)">Create Section</h3><div class="row"><input id="adminNewSection" placeholder="Example: ACAD 12-G"><button class="btn-primary" id="adminCreateSectionBtn">Create</button></div>
-  <div id="primaryAdminManager" style="display:none;border:1px solid var(--border);border-radius:10px;padding:12px;margin:14px 0">
-   <h3 style="font-size:14px;color:var(--navy);margin-top:0">Manage Additional Admins</h3>
-   <p class="muted">Create the account first in Firebase Authentication → Users. Then paste its User UID here. Only the Primary Admin can add or remove Admin access.</p>
-   <div class="row"><input id="newAdminUid" placeholder="Paste new Admin User UID"><button class="btn-primary" id="grantAdminBtn">Add Admin</button></div>
-   <div id="additionalAdminsList"><p class="muted">No additional Admins loaded.</p></div>
-  </div>
   <h3 style="font-size:14px;color:var(--navy)">Teacher Accounts</h3><button class="btn-secondary" id="refreshUsersBtn">Refresh Accounts</button><div id="adminUsersList"><p class="muted">Loading accounts…</p></div>
-  <hr style="border:0;border-top:1px solid var(--border);margin:18px 0"><h3 style="font-size:14px;color:var(--navy)">Move Existing Browser Data to Firebase</h3><p class="muted">Use this once from the same browser and GitHub Pages address where your old ReMark data is stored. Existing cloud sections will be skipped to avoid overwriting cloud records.</p><button class="btn-primary btn-block" id="migrateLocalBtn">Upload This Browser's Existing Data</button><p class="muted" id="migrationStatus"></p>
+  <hr style="border:0;border-top:1px solid var(--border);margin:18px 0"><h3 style="font-size:14px;color:var(--navy)">Migrate Old Browser Data</h3><p class="muted">Run once from the browser that has your old ReMark data. Existing cloud sections are skipped.</p><button class="btn-primary btn-block" id="migrateLocalBtn">Upload Old Data to Firebase</button><p class="muted" id="migrationStatus"></p>
  </div>
 </div>
 </main>
@@ -96,7 +90,6 @@ const KEYS={students:'remark_students',logs:'remark_logs',finalized:'remark_fina
 const $=id=>document.getElementById(id);
 const FIREBASE_CONFIG={apiKey:"AIzaSyDwoFz65Xax29dWrSUulsgbrTx6nyIve6w",authDomain:"remark-69ddc.firebaseapp.com",projectId:"remark-69ddc",storageBucket:"remark-69ddc.firebasestorage.app",messagingSenderId:"987326516491",appId:"1:987326516491:web:652f6552899ef127bfe60e",measurementId:"G-68SVQXHT1F"};
 const ADMIN_UID='UagF1jarxHSGeYiLbf0JJ3RHRvl2';
-const isPrimaryAdmin=()=>!!currentUser&&currentUser.uid===ADMIN_UID;
 let fbApp=null,fbAuth=null,fbDb=null,currentUser=null,currentProfile=null,cloudReady=false,cloudRole='',allowedSectionIds=[],sectionUnsubs=[],cloudSyncTimer=null,cloudSyncQueue=Promise.resolve(),suppressCloudWrites=false,registrationInProgress=false;
 const read=(key,def)=>{try{return JSON.parse(localStorage.getItem(key)??JSON.stringify(def))}catch(e){return def}};
 const rawWrite=(key,val)=>localStorage.setItem(key,JSON.stringify(val));
@@ -141,7 +134,7 @@ $('addSectionBtn').onclick=()=>{alert('Only the Admin can create sections. Use S
 $('archiveSectionBtn').onclick=async()=>{if(cloudRole!=='admin'){alert('Only the Admin can archive sections.');return}const section=activeSection();if(sections().length<=1){alert('Keep at least one active section.');return}if(!confirm('Archive section '+section+'? Its records will be preserved.'))return;saveArchivedSections([...loadArchivedSections(),section]);await fbDb.collection('sections').doc(sectionDocId(section)).set({name:section,archived:true,updatedAt:firebase.firestore.FieldValue.serverTimestamp()},{merge:true});localStorage.setItem(KEYS.active,sections().find(x=>x!==section)||'ACAD 12-G');await loadAndWatchSection(activeSection());renderAll()};
 $('restoreSectionBtn').onclick=async()=>{if(cloudRole!=='admin'){alert('Only the Admin can restore sections.');return}const section=$('archivedSectionSelect').value;if(!section){alert('Choose an archived section first.');return}saveArchivedSections(loadArchivedSections().filter(x=>x!==section));saveSections([...read(KEYS.sections,[]),section]);await fbDb.collection('sections').doc(sectionDocId(section)).set({name:section,archived:false,updatedAt:firebase.firestore.FieldValue.serverTimestamp()},{merge:true});localStorage.setItem(KEYS.active,section);await loadAndWatchSection(section);renderAll()};
 function currentStudents(){return loadStudents().filter(s=>(s.section||'ACAD 12-G')===activeSection()&&!s.archivedAt)}
-function renderRoster(){const students=sortStudents(currentStudents());$('rosterCount').textContent=students.length;const list=$('rosterList');list.innerHTML='';if(!students.length){list.innerHTML='<div class="empty">No active students in this section yet.</div>';}students.forEach(s=>{const row=document.createElement('div');row.className='student-row';const details=[s.sex||'Sex not set',s.lrn?'LRN: '+s.lrn:'','QR ID: '+s.id].filter(Boolean).join(' · ');const info=document.createElement('div');info.innerHTML=`<div class="student-name">${escapeHtml(s.name)}</div><div class="student-id">${escapeHtml(details)}</div>`;const controls=document.createElement('div');controls.style.display='flex';controls.style.gap='5px';controls.style.flexWrap='wrap';const sex=document.createElement('select');sex.className='small-select';sex.innerHTML='<option value="">Unassigned</option><option value="Male">Male</option><option value="Female">Female</option>';sex.value=s.sex||'';sex.onchange=()=>{const all=loadStudents();const target=all.find(x=>x.id===s.id);if(target){target.sex=sex.value;saveStudents(all);renderRoster();renderSf2Month()}};const qr=document.createElement('button');qr.className='qr-btn';qr.textContent='Show QR';qr.onclick=()=>showQr(s.id,s.name);const archive=document.createElement('button');archive.className='danger';archive.textContent='Remove';archive.title='Archive student and preserve attendance history';archive.onclick=()=>archiveStudent(s.id);controls.append(sex,qr,archive);row.append(info,controls);list.append(row)});const archived=sortStudents(loadStudents().filter(s=>(s.section||'ACAD 12-G')===activeSection()&&s.archivedAt));$('archivedStudentSelect').innerHTML='<option value="">'+(archived.length?'Choose archived student':'No archived students')+'</option>'+archived.map(s=>`<option value="${escapeHtml(s.id)}">${escapeHtml(s.name)}</option>`).join('');$('restoreStudentBtn').disabled=!archived.length}
+function renderRoster(){const students=sortStudents(currentStudents());$('rosterCount').textContent=students.length;const list=$('rosterList');list.innerHTML='';if(!students.length){list.innerHTML='<div class="empty">No students in this section.</div>';}students.forEach(s=>{const row=document.createElement('div');row.className='student-row';const details=[s.sex||'Sex not set',s.lrn?'LRN: '+s.lrn:'','QR ID: '+s.id].filter(Boolean).join(' · ');const info=document.createElement('div');info.innerHTML=`<div class="student-name">${escapeHtml(s.name)}</div><div class="student-id">${escapeHtml(details)}</div>`;const controls=document.createElement('div');controls.style.display='flex';controls.style.gap='5px';controls.style.flexWrap='wrap';const sex=document.createElement('select');sex.className='small-select';sex.innerHTML='<option value="">Unassigned</option><option value="Male">Male</option><option value="Female">Female</option>';sex.value=s.sex||'';sex.onchange=()=>{const all=loadStudents();const target=all.find(x=>x.id===s.id);if(target){target.sex=sex.value;saveStudents(all);renderRoster();renderSf2Month()}};const qr=document.createElement('button');qr.className='qr-btn';qr.textContent='Show QR';qr.onclick=()=>showQr(s.id,s.name);const archive=document.createElement('button');archive.className='danger';archive.textContent='Remove';archive.title='Archive student and preserve attendance history';archive.onclick=()=>archiveStudent(s.id);controls.append(sex,qr,archive);row.append(info,controls);list.append(row)});const archived=sortStudents(loadStudents().filter(s=>(s.section||'ACAD 12-G')===activeSection()&&s.archivedAt));$('archivedStudentSelect').innerHTML='<option value="">'+(archived.length?'Choose archived student':'No archived students')+'</option>'+archived.map(s=>`<option value="${escapeHtml(s.id)}">${escapeHtml(s.name)}</option>`).join('');$('restoreStudentBtn').disabled=!archived.length}
 function archiveStudent(id){const student=loadStudents().find(s=>s.id===id);if(!student)return;if(!confirm('Remove '+student.name+' from the active roster? Their previous attendance records and QR ID will be preserved.'))return;const all=loadStudents();const target=all.find(s=>s.id===id);target.archivedAt=todayKey();saveStudents(all);renderAll()}
 $('restoreStudentBtn').onclick=()=>{const id=$('archivedStudentSelect').value;if(!id){alert('Choose an archived student first.');return}const all=loadStudents(),student=all.find(s=>s.id===id);if(!student)return;delete student.archivedAt;saveStudents(all);renderAll()}
 
@@ -493,7 +486,7 @@ async function loadCloudWorkspace(){
   setCloudMessage('Admin workspace ready. Your existing browser data is preserved. Use “Upload This Browser’s Existing Data” to migrate it to Firebase.');
  }
 }
-function showSignedInApp(){ $('authGate').style.display='none';$('appShell').style.display='block';$('signedInLabel').textContent=(currentUser.email||'')+' · '+(cloudRole==='admin'?'Admin':'Teacher');$('adminPanel').style.display=cloudRole==='admin'?'block':'none';$('primaryAdminManager').style.display=isPrimaryAdmin()?'block':'none';$('addSectionBtn').style.display='none';$('archiveSectionBtn').style.display=cloudRole==='admin'?'inline-block':'none';$('restoreSectionBtn').style.display=cloudRole==='admin'?'inline-block':'none';}
+function showSignedInApp(){ $('authGate').style.display='none';$('appShell').style.display='block';$('signedInLabel').textContent=(currentUser.email||'')+' · '+(cloudRole==='admin'?'Admin':'Teacher');$('adminPanel').style.display=cloudRole==='admin'?'block':'none';$('addSectionBtn').style.display='none';$('archiveSectionBtn').style.display=cloudRole==='admin'?'inline-block':'none';$('restoreSectionBtn').style.display=cloudRole==='admin'?'inline-block':'none';}
 function showAuthGate(message){clearSectionListeners();cloudReady=false;currentUser=null;currentProfile=null;cloudRole='';$('appShell').style.display='none';$('authGate').style.display='block';if(message)setAuthMessage(message);}
 async function initFirebaseCloud(){
  try{
@@ -505,18 +498,13 @@ async function initFirebaseCloud(){
   $('resetPasswordBtn').onclick=async()=>{const email=$('authEmail').value.trim();if(!email){setAuthMessage('Enter your email first.');return;}try{await fbAuth.sendPasswordResetEmail(email);setAuthMessage('Password reset email sent.');}catch(e){setAuthMessage(authError(e));}};
   $('adminCreateSectionBtn').onclick=async()=>{if(cloudRole!=='admin')return;const name=$('adminNewSection').value.trim();if(!name){alert('Enter a section name.');return;}const id=sectionDocId(name),ref=fbDb.collection('sections').doc(id);if((await ref.get()).exists){alert('That section already exists.');return;}await ref.set({name,archived:false,createdAt:firebase.firestore.FieldValue.serverTimestamp()});saveSections([...sections(),name]);localStorage.setItem(KEYS.active,name);$('adminNewSection').value='';await loadCloudWorkspace();renderAll();await refreshAdminUsers();};
   $('refreshUsersBtn').onclick=refreshAdminUsers;$('migrateLocalBtn').onclick=migrateLocalDataToCloud;
-  $('grantAdminBtn').onclick=grantAdditionalAdmin;
   fbAuth.onAuthStateChanged(async user=>{
    if(registrationInProgress)return;
    if(!user){showAuthGate('Sign in with your ReMark account.');return;}
    try{
     currentUser=user;
     if(user.uid===ADMIN_UID){cloudRole='admin';currentProfile={role:'admin',status:'approved',sections:[]};await fbDb.collection('users').doc(user.uid).set({email:user.email||'',role:'admin',status:'approved',sections:[],updatedAt:firebase.firestore.FieldValue.serverTimestamp()},{merge:true});}
-    else{
-     const adminSnap=await fbDb.collection('admins').doc(user.uid).get();
-     if(adminSnap.exists&&adminSnap.data().active===true){cloudRole='admin';currentProfile={role:'admin',status:'approved',sections:[]};}
-     else{const profileSnap=await fbDb.collection('users').doc(user.uid).get();if(!profileSnap.exists){await fbAuth.signOut();showAuthGate('This account has no ReMark registration record. Please register as a teacher first.');return;}currentProfile=profileSnap.data();if(currentProfile.status!=='approved'){const status=currentProfile.status==='rejected'?'Your teacher registration was not approved. Contact the Admin.':'Your teacher account is pending Admin approval.';await fbAuth.signOut();showAuthGate(status);return;}if(currentProfile.role!=='teacher'){await fbAuth.signOut();showAuthGate('This account does not have an approved ReMark role.');return;}cloudRole='teacher';}
-    }
+    else{const profileSnap=await fbDb.collection('users').doc(user.uid).get();if(!profileSnap.exists){await fbAuth.signOut();showAuthGate('This account has no ReMark registration record. Please register as a teacher first.');return;}currentProfile=profileSnap.data();if(currentProfile.status!=='approved'){const status=currentProfile.status==='rejected'?'Your teacher registration was not approved. Contact the Admin.':'Your teacher account is pending Admin approval.';await fbAuth.signOut();showAuthGate(status);return;}if(currentProfile.role!=='teacher'){await fbAuth.signOut();showAuthGate('This account does not have an approved ReMark role.');return;}cloudRole='teacher';}
     await loadCloudWorkspace();cloudReady=true;showSignedInApp();$('lateCutoff').value=cutoff();renderAll();if(cloudRole==='admin')await refreshAdminUsers();
    }catch(e){console.error(e);cloudReady=false;showAuthGate('Could not load your cloud workspace: '+e.message);}
   });
@@ -525,32 +513,11 @@ async function initFirebaseCloud(){
 function authError(e){const code=e&&e.code||'';if(code==='auth/invalid-credential'||code==='auth/wrong-password'||code==='auth/user-not-found')return 'Email or password is incorrect.';if(code==='auth/email-already-in-use')return 'That email already has an account. Sign in instead.';if(code==='auth/weak-password')return 'Use a stronger password (at least 6 characters).';if(code==='auth/invalid-email')return 'Enter a valid email address.';return e.message||'Authentication failed.';}
 async function refreshAdminUsers(){
  if(cloudRole!=='admin')return;const host=$('adminUsersList');host.innerHTML='<p class="muted">Loading accounts…</p>';
- try{const [usersSnap,sectionsSnap]=await Promise.all([fbDb.collection('users').get(),fbDb.collection('sections').get()]);if(isPrimaryAdmin())await refreshAdditionalAdmins();const sec=sectionsSnap.docs.map(d=>({id:d.id,name:d.data().name,archived:!!d.data().archived}));const users=usersSnap.docs.filter(d=>d.id!==ADMIN_UID&&d.data().role!=='admin').map(d=>({uid:d.id,...d.data()}));
+ try{const [usersSnap,sectionsSnap]=await Promise.all([fbDb.collection('users').get(),fbDb.collection('sections').get()]);const sec=sectionsSnap.docs.map(d=>({id:d.id,name:d.data().name,archived:!!d.data().archived}));const users=usersSnap.docs.filter(d=>d.id!==ADMIN_UID).map(d=>({uid:d.id,...d.data()}));
   if(!users.length){host.innerHTML='<p class="muted">No teacher accounts yet. Teachers can register from the login screen.</p>';return;}
   host.innerHTML='';users.forEach(u=>{const card=document.createElement('div');card.className='admin-user';const title=document.createElement('div');title.innerHTML='<strong>'+escapeHtml(u.email||u.uid)+'</strong> · '+escapeHtml(u.status||'unknown');const checks=document.createElement('div');checks.className='section-checks';sec.filter(s=>!s.archived).forEach(s=>{const lab=document.createElement('label');const cb=document.createElement('input');cb.type='checkbox';cb.value=s.id;cb.checked=(u.sections||[]).includes(s.id);lab.append(cb,document.createTextNode(s.name));checks.append(lab);});const actions=document.createElement('div');actions.className='row';actions.style.marginTop='10px';const approve=document.createElement('button');approve.className='btn-primary';approve.textContent=u.status==='approved'?'Save Assignments':'Approve & Assign';approve.onclick=async()=>{const ids=[...checks.querySelectorAll('input:checked')].map(x=>x.value);await fbDb.collection('users').doc(u.uid).update({role:'teacher',status:'approved',sections:ids,updatedAt:firebase.firestore.FieldValue.serverTimestamp()});await refreshAdminUsers();};const reject=document.createElement('button');reject.className='danger';reject.textContent='Reject';reject.onclick=async()=>{if(!confirm('Reject this teacher account?'))return;await fbDb.collection('users').doc(u.uid).update({status:'rejected',sections:[],updatedAt:firebase.firestore.FieldValue.serverTimestamp()});await refreshAdminUsers();};actions.append(approve,reject);card.append(title,document.createTextNode('Assigned sections:'),checks,actions);host.append(card);});
  }catch(e){host.innerHTML='<p class="muted">Could not load teacher accounts: '+escapeHtml(e.message)+'</p>';}
 }
-async function grantAdditionalAdmin(){
- if(!isPrimaryAdmin()){alert('Only the Primary Admin can add another Admin.');return;}
- const uid=$('newAdminUid').value.trim();
- if(!uid||uid===ADMIN_UID){alert('Enter a valid, different Firebase Authentication User UID.');return;}
- try{
-  const existing=await fbDb.collection('admins').doc(uid).get();
-  if(existing.exists&&existing.data().active===true){alert('This account is already an Admin.');return;}
-  await fbDb.collection('admins').doc(uid).set({active:true,createdAt:firebase.firestore.FieldValue.serverTimestamp(),createdBy:currentUser.uid});
-  $('newAdminUid').value='';await refreshAdditionalAdmins();alert('Admin access granted. The new Admin should sign out and sign in again.');
- }catch(e){alert('Could not add Admin: '+e.message);}
-}
-async function refreshAdditionalAdmins(){
- if(!isPrimaryAdmin())return;
- const host=$('additionalAdminsList');if(!host)return;host.innerHTML='<p class="muted">Loading Admin accounts…</p>';
- try{
-  const snap=await fbDb.collection('admins').get();const docs=snap.docs.filter(d=>d.id!==ADMIN_UID&&d.data().active===true);
-  if(!docs.length){host.innerHTML='<p class="muted">No additional Admins yet.</p>';return;}
-  host.innerHTML='';docs.forEach(d=>{const item=document.createElement('div');item.className='admin-user';const label=document.createElement('div');label.innerHTML='<strong>Admin UID:</strong> '+escapeHtml(d.id);const btn=document.createElement('button');btn.className='danger';btn.textContent='Remove Admin Access';btn.onclick=async()=>{if(!confirm('Remove Admin access from '+d.id+'?'))return;try{await fbDb.collection('admins').doc(d.id).delete();await refreshAdditionalAdmins();}catch(e){alert('Could not remove Admin: '+e.message);}};item.append(label,btn);host.append(item);});
- }catch(e){host.innerHTML='<p class="muted">Could not load Admin accounts: '+escapeHtml(e.message)+'</p>';}
-}
-
 async function uploadOneLocalSection(section){
  const id=sectionDocId(section),base=fbDb.collection('sections').doc(id);await base.set({name:section,archived:loadArchivedSections().includes(section),createdAt:firebase.firestore.FieldValue.serverTimestamp()},{merge:true});
  const students=loadStudents().filter(s=>(s.section||'ACAD 12-G')===section),logs=loadLogs().filter(l=>l.section===section).map(l=>({...l,recordId:l.studentId+'_'+l.dateKey})),finals=loadFinalized().filter(x=>x.startsWith(section+'|')).map(x=>({dateKey:x.slice(section.length+1)}));
